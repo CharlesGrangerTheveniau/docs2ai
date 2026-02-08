@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head><title>Code Examples</title></head>
+<body>
+  <article>
+    <h1>Code Examples</h1>
+
+    <h2>Language class on code element</h2>
+    <pre><code class="language-python">def hello():
+    print("Hello, World!")
+    return True</code></pre>
+
+    <h2>Data-language on pre element</h2>
+    <pre data-language="typescript"><code>interface Config {
+  name: string;
+  version: number;
+}</code></pre>
+
+    <h2>Data-lang on pre element</h2>
+    <pre data-lang="rust"><code>fn main() {
+    println!("Hello, Rust!");
+}</code></pre>
+
+    <h2>Data-lang on code element</h2>
+    <pre><code data-lang="go">func main() {
+    fmt.Println("Hello, Go!")
+}</code></pre>
+
+    <h2>No language specified</h2>
+    <pre><code>plain code block
+with multiple lines</code></pre>
+
+    <h2>Indented code</h2>
+    <pre><code class="language-yaml">services:
+  web:
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./html:/usr/share/nginx/html</code></pre>
+
+    <h2>Inline code</h2>
+    <p>Use the <code>ctxify</code> command to convert docs.</p>
+
+    <h2>Callout test</h2>
+    <div class="admonition warning">
+      <p>This is a warning callout that should be converted to a blockquote.</p>
+    </div>
+
+    <aside>
+      <p>This is an aside element used as a callout on some doc sites for additional notes.</p>
+    </aside>
+
+    <h2>Tabbed content test</h2>
+    <div class="tab-panel" aria-label="npm">
+      <pre><code class="language-bash">npm install ctxify</code></pre>
+    </div>
+    <div class="tab-panel" aria-label="yarn">
+      <pre><code class="language-bash">yarn add ctxify</code></pre>
+    </div>
+
+    <h2>Hidden element test</h2>
+    <div style="display: none">This should be removed</div>
+    <div class="tab-panel" style="display: none" aria-label="hidden-tab">
+      <p>This hidden tab panel should be preserved</p>
+    </div>
+  </article>
+</body>
+</html>
