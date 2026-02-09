@@ -21,7 +21,7 @@ export function write(
     fetched_at: new Date().toISOString(),
     platform: options.platform,
     title: options.title,
-    ctxify_version: "0.1.0",
+    docs2ai_version: "0.1.0",
   });
 
   if (outputPath) {

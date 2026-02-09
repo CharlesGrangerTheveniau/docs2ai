@@ -26,7 +26,7 @@ describe("write", () => {
     expect(output).toContain("https://example.com");
     expect(output).toContain("title: Hello");
     expect(output).toContain("platform: generic");
-    expect(output).toContain("ctxify_version: 0.1.0");
+    expect(output).toContain("docs2ai_version: 0.1.0");
     expect(output).toContain("# Hello");
   });
 

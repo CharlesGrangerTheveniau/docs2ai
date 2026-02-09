@@ -1,4 +1,4 @@
-# ctxify
+# docs2ai
 
 Convert documentation URLs into clean, AI-ready Markdown files. Drop them into your project so AI coding assistants (Cursor, Claude Code, Copilot, etc.) have accurate, up-to-date context.
 
@@ -6,29 +6,29 @@ Convert documentation URLs into clean, AI-ready Markdown files. Drop them into y
 
 ```bash
 # Run directly
-npx ctxify <url>
+npx docs2ai <url>
 
 # Or install globally
-npm install -g ctxify
+npm install -g docs2ai
 ```
 
 ## Usage
 
 ```bash
 # Fetch a single page to stdout
-ctxify https://docs.stripe.com/api/charges
+docs2ai https://docs.stripe.com/api/charges
 
 # Write to a file
-ctxify https://docs.stripe.com/api/charges -o .ai/stripe.md
+docs2ai https://docs.stripe.com/api/charges -o .ai/stripe.md
 
 # Crawl linked pages
-ctxify https://docs.stripe.com/api/charges --crawl --max-depth 2 -o .ai/stripe.md
+docs2ai https://docs.stripe.com/api/charges --crawl --max-depth 2 -o .ai/stripe.md
 
 # Manage sources in a config file
-ctxify add https://docs.stripe.com/api/charges --name stripe --crawl
-ctxify update            # refresh all sources
-ctxify update --name stripe  # refresh one
-ctxify list              # show configured sources
+docs2ai add https://docs.stripe.com/api/charges --name stripe --crawl
+docs2ai update            # refresh all sources
+docs2ai update --name stripe  # refresh one
+docs2ai list              # show configured sources
 ```
 
 ## Features
@@ -37,10 +37,10 @@ ctxify list              # show configured sources
 - **Code block preservation** — language tags and indentation survive extraction perfectly
 - **Crawl mode** — follows sidebar/nav links with configurable depth
 - **YAML frontmatter** — each output includes source URL, fetch date, platform, and title
-- **Config file** — manage multiple doc sources with `.ctxify.yaml`
+- **Config file** — manage multiple doc sources with `.docs2ai.yaml`
 - **Playwright optional** — uses fast static fetch by default, Playwright only when needed for JS-rendered pages
 
-## Config (.ctxify.yaml)
+## Config (.docs2ai.yaml)
 
 ```yaml
 version: 1

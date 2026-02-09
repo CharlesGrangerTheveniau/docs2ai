@@ -7,8 +7,8 @@ export interface SourceConfig {
   output: string;
 }
 
-/** Top-level .ctxify.yaml configuration. */
-export interface CtxifyConfig {
+/** Top-level .docs2ai.yaml configuration. */
+export interface Docs2aiConfig {
   version: number;
   outputDir: string;
   sources: SourceConfig[];

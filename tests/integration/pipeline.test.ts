@@ -87,7 +87,7 @@ describe("full pipeline integration", () => {
     expect(markdown).toContain('fmt.Println("Hello, Go!")');
 
     // Inline code
-    expect(markdown).toContain("`ctxify`");
+    expect(markdown).toContain("`docs2ai`");
 
     // Indentation preserved
     expect(markdown).toContain("./html:/usr/share/nginx/html");
@@ -108,7 +108,7 @@ describe("full pipeline integration", () => {
     const markdown = transform(content);
 
     // Tab content should survive even if tab markers are lost via Readability
-    expect(markdown).toContain("npm install ctxify");
-    expect(markdown).toContain("yarn add ctxify");
+    expect(markdown).toContain("npm install docs2ai");
+    expect(markdown).toContain("yarn add docs2ai");
   });
 });

@@ -6,7 +6,7 @@ import { listCommand } from "./commands/list";
 
 const main = defineCommand({
   meta: {
-    name: "ctxify",
+    name: "docs2ai",
     version: "0.1.0",
     description: "Convert documentation URLs into AI-ready Markdown files",
   },
@@ -39,11 +39,11 @@ const main = defineCommand({
   },
   run({ args }) {
     if (!args.url) {
-      console.log("Usage: ctxify <url> [-o output.md] [--crawl]");
-      console.log("       ctxify add <url> [--name name] [--crawl]");
-      console.log("       ctxify update [--name name]");
-      console.log("       ctxify list");
-      console.log("\nRun `ctxify --help` for full usage.");
+      console.log("Usage: docs2ai <url> [-o output.md] [--crawl]");
+      console.log("       docs2ai add <url> [--name name] [--crawl]");
+      console.log("       docs2ai update [--name name]");
+      console.log("       docs2ai list");
+      console.log("\nRun `docs2ai --help` for full usage.");
       return;
     }
     return (fetchCommand as any).run({ args });

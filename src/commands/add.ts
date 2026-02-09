@@ -2,12 +2,12 @@ import { defineCommand } from "citty";
 import { join } from "node:path";
 import consola from "consola";
 import { loadConfig, saveConfig, addSource } from "../config/manager";
-import type { CtxifyConfig } from "../config/schema";
+import type { Docs2aiConfig } from "../config/schema";
 
 export const addCommand = defineCommand({
   meta: {
     name: "add",
-    description: "Add a documentation source to .ctxify.yaml",
+    description: "Add a documentation source to .docs2ai.yaml",
   },
   args: {
     url: {
@@ -44,14 +44,14 @@ export const addCommand = defineCommand({
     const output = (args.output as string) || `${name}.md`;
 
     const existing = loadConfig();
-    let config: CtxifyConfig;
+    let config: Docs2aiConfig;
     let configPath: string;
 
     if (existing) {
       config = existing.config;
       configPath = existing.configPath;
     } else {
-      configPath = join(process.cwd(), ".ctxify.yaml");
+      configPath = join(process.cwd(), ".docs2ai.yaml");
       config = { version: 1, outputDir: ".ai/docs", sources: [] };
     }
 

@@ -23,7 +23,7 @@ export const updateCommand = defineCommand({
   async run({ args }) {
     const result = loadConfig();
     if (!result) {
-      consola.error("No .ctxify.yaml found. Run `ctxify add <url>` first.");
+      consola.error("No .docs2ai.yaml found. Run `docs2ai add <url>` first.");
       process.exit(1);
     }
 

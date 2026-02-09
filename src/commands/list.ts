@@ -10,7 +10,7 @@ export const listCommand = defineCommand({
   run() {
     const result = loadConfig();
     if (!result) {
-      consola.info("No .ctxify.yaml found. Run `ctxify add <url>` to get started.");
+      consola.info("No .docs2ai.yaml found. Run `docs2ai add <url>` to get started.");
       return;
     }
 

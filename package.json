@@ -1,10 +1,10 @@
 {
-  "name": "ctxify",
+  "name": "docs2ai",
   "version": "0.1.0",
   "description": "Convert online documentation into AI-ready Markdown context files",
   "type": "module",
   "bin": {
-    "ctxify": "./dist/cli.mjs"
+    "docs2ai": "./dist/cli.mjs"
   },
   "scripts": {
     "dev": "tsx src/cli.ts",
@@ -31,6 +31,14 @@
     "readability"
   ],
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CharlesGrangerTheveniau/ctxify.git"
+  },
+  "homepage": "https://github.com/CharlesGrangerTheveniau/ctxify",
+  "bugs": {
+    "url": "https://github.com/CharlesGrangerTheveniau/ctxify/issues"
+  },
   "files": [
     "dist",
     "README.md"

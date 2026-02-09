@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { loadConfig, saveConfig, addSource } from "../../src/config/manager";
-import type { CtxifyConfig } from "../../src/config/schema";
+import type { Docs2aiConfig } from "../../src/config/schema";
 import { readFileSync, writeFileSync, existsSync } from "node:fs";
 
 vi.mock("node:fs", () => ({
@@ -25,7 +25,7 @@ describe("loadConfig", () => {
 
   it("parses YAML config with snake_case to camelCase conversion", () => {
     (existsSync as any).mockImplementation((path: string) =>
-      path.endsWith(".ctxify.yaml")
+      path.endsWith(".docs2ai.yaml")
     );
     (readFileSync as any).mockReturnValue(`
 version: 1
@@ -51,7 +51,7 @@ sources:
 
 describe("saveConfig", () => {
   it("writes YAML with camelCase to snake_case conversion", () => {
-    const config: CtxifyConfig = {
+    const config: Docs2aiConfig = {
       version: 1,
       outputDir: ".ai/docs",
       sources: [
@@ -65,7 +65,7 @@ describe("saveConfig", () => {
       ],
     };
 
-    saveConfig(config, "/tmp/.ctxify.yaml");
+    saveConfig(config, "/tmp/.docs2ai.yaml");
 
     expect(writeFileSync).toHaveBeenCalled();
     const written = (writeFileSync as any).mock.calls[0][1] as string;
@@ -78,7 +78,7 @@ describe("saveConfig", () => {
 
 describe("addSource", () => {
   it("adds a new source", () => {
-    const config: CtxifyConfig = {
+    const config: Docs2aiConfig = {
       version: 1,
       outputDir: ".ai/docs",
       sources: [],
@@ -97,7 +97,7 @@ describe("addSource", () => {
   });
 
   it("replaces existing source with same name (upsert)", () => {
-    const config: CtxifyConfig = {
+    const config: Docs2aiConfig = {
       version: 1,
       outputDir: ".ai/docs",
       sources: [

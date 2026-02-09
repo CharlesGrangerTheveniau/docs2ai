@@ -63,9 +63,9 @@ describe("transform", () => {
 
     it("preserves inline code", () => {
       const md = transform(
-        "<p>Use the <code>ctxify</code> command.</p>"
+        "<p>Use the <code>docs2ai</code> command.</p>"
       );
-      expect(md).toContain("`ctxify`");
+      expect(md).toContain("`docs2ai`");
     });
   });
 
@@ -164,7 +164,7 @@ describe("transform", () => {
       expect(md).toContain("    ports:");
 
       // Inline code
-      expect(md).toContain("`ctxify`");
+      expect(md).toContain("`docs2ai`");
     });
   });
 });
