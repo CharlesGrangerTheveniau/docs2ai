@@ -1,0 +1,10 @@
+{
+  "name": "acme",
+  "url": "https://docs.acme.com/getting-started",
+  "platform": "mintlify",
+  "fetched_at": "2025-06-01T10:00:00Z",
+  "pages": [
+    { "title": "Getting Started", "path": "getting-started.md" },
+    { "title": "Authentication Guide", "path": "guides/authentication.md" }
+  ]
+}

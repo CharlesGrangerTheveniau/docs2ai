@@ -3,11 +3,13 @@ import { fetchCommand } from "./commands/fetch";
 import { addCommand } from "./commands/add";
 import { updateCommand } from "./commands/update";
 import { listCommand } from "./commands/list";
+import { serveCommand } from "./commands/serve";
 
 const subCommands: Record<string, any> = {
   add: addCommand,
   update: updateCommand,
   list: listCommand,
+  serve: serveCommand,
 };
 
 // Check if first non-flag arg is a subcommand
@@ -42,6 +44,7 @@ if (isSubCommand) {
       console.log("       docs2ai add <url> [--name name] [--crawl]");
       console.log("       docs2ai update [--name name]");
       console.log("       docs2ai list");
+      console.log("       docs2ai serve [-d dir]");
       console.log("\nRun `docs2ai --help` for full usage.");
     },
   });

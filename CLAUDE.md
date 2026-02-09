@@ -1,8 +1,8 @@
-# CLAUDE.md — doc2ctx
+# CLAUDE.md — docs2ai
 
 ## Project Overview
 
-doc2ctx is an open-source CLI tool that converts online documentation pages into clean, AI-ready Markdown files. The goal is to let developers paste a documentation URL and get a `.md` file they can drop into their project so that AI coding assistants (Cursor, Claude Code, Copilot, etc.) have accurate, up-to-date context about the APIs and libraries they're using.
+docs2ai is an open-source CLI tool that converts online documentation pages into clean, AI-ready Markdown files. The goal is to let developers paste a documentation URL and get a `.md` file they can drop into their project so that AI coding assistants (Cursor, Claude Code, Copilot, etc.) have accurate, up-to-date context about the APIs and libraries they're using.
 
 ## Core Pipeline
 
@@ -16,7 +16,7 @@ URL → Resolver → Fetcher → Extractor → Transformer → Writer
 - **Fetcher**: Retrieves the raw HTML. Two modes: fast path (native `fetch`/`ofetch` for static/SSR sites) and heavy path (Playwright for JS-rendered SPAs). Handles crawl mode (following sidebar links, respecting crawl depth). Rate limiting and politeness logic lives here.
 - **Extractor**: Pulls meaningful content from raw HTML. Uses platform-specific selectors first (e.g. known content containers for Mintlify, Docusaurus), falls back to `@mozilla/readability` for generic extraction. Uses `cheerio` for DOM querying. Strips navbars, footers, cookie banners, sidebars.
 - **Transformer**: Converts clean HTML to Markdown via `Turndown` + `turndown-plugin-gfm`. Custom rules handle code blocks, callouts/admonitions, tabbed content, and tables. Code block preservation (language tags, indentation) is critical — never break code examples.
-- **Writer**: Outputs Markdown with YAML frontmatter (source URL, fetch date, platform, title). Two output modes for crawl: single-file (all pages stitched with `---` separators) or directory (one `.md` per page with `_index.json` source manifest and `manifest.json` root manifest). Manages the `.doc2ctx.yaml` config file for multi-source projects.
+- **Writer**: Outputs Markdown with YAML frontmatter (source URL, fetch date, platform, title). Two output modes for crawl: single-file (all pages stitched with `---` separators) or directory (one `.md` per page with `_index.json` source manifest and `manifest.json` root manifest). Manages the `.docs2ai.yaml` config file for multi-source projects.
 
 ## Tech Stack
 
@@ -29,7 +29,9 @@ URL → Resolver → Fetcher → Extractor → Transformer → Writer
 - **DOM parsing**: `cheerio` for HTML querying and platform-specific selectors
 - **Content extraction**: `@mozilla/readability` for generic content isolation
 - **HTML → Markdown**: `turndown` + `turndown-plugin-gfm`
-- **Config**: `js-yaml` for `.doc2ctx.yaml`, `gray-matter` for frontmatter
+- **Config**: `js-yaml` for `.docs2ai.yaml`, `gray-matter` for frontmatter
+- **MCP**: `@modelcontextprotocol/sdk` for Model Context Protocol server, `zod` for tool input schemas
+- **Search**: `minisearch` for full-text search over loaded docs
 - **Build**: `tsup` for building the CLI
 - **Testing**: `vitest`
 - **Linting**: `eslint` + `prettier`
@@ -37,14 +39,15 @@ URL → Resolver → Fetcher → Extractor → Transformer → Writer
 ## Project Structure
 
 ```
-doc2ctx/
+docs2ai/
 ├── src/
 │   ├── cli.ts              # CLI entry point, command definitions
 │   ├── commands/
-│   │   ├── fetch.ts         # `doc2ctx <url>` — one-shot extraction
-│   │   ├── add.ts           # `doc2ctx add <url>` — add source to config
-│   │   ├── update.ts        # `doc2ctx update` — refresh all sources
-│   │   └── list.ts          # `doc2ctx list` — show configured sources
+│   │   ├── fetch.ts         # `docs2ai <url>` — one-shot extraction
+│   │   ├── add.ts           # `docs2ai add <url>` — add source to config
+│   │   ├── update.ts        # `docs2ai update` — refresh all sources
+│   │   ├── list.ts          # `docs2ai list` — show configured sources
+│   │   └── serve.ts         # `docs2ai serve` — start MCP server
 │   ├── pipeline/
 │   │   ├── resolver.ts      # Platform detection
 │   │   ├── fetcher.ts       # HTML fetching (static + browser)
@@ -62,9 +65,13 @@ doc2ctx/
 │   ├── crawl/
 │   │   ├── crawler.ts       # Link discovery + crawl orchestration
 │   │   └── boundary.ts      # Crawl boundary detection (URL prefix, nav scope)
+│   ├── mcp/
+│   │   ├── loader.ts        # Reads docs directory into memory
+│   │   ├── search.ts        # Full-text search with MiniSearch
+│   │   └── server.ts        # MCP server with 4 tools
 │   ├── config/
 │   │   ├── schema.ts        # Config file types
-│   │   └── manager.ts       # Read/write .doc2ctx.yaml
+│   │   └── manager.ts       # Read/write .docs2ai.yaml
 │   └── utils/
 │       ├── url.ts           # URL normalization, validation, hostname slugging
 │       ├── slug.ts          # Pathname-based slugging for directory output
@@ -78,7 +85,7 @@ doc2ctx/
 ├── tsconfig.json
 ├── tsup.config.ts
 ├── vitest.config.ts
-├── .doc2ctx.yaml            # Example config
+├── .docs2ai.yaml            # Example config
 ├── CLAUDE.md
 └── README.md
 ```
@@ -87,35 +94,76 @@ doc2ctx/
 
 ```bash
 # One-shot: fetch a single URL, output to stdout
-doc2ctx https://developers.yousign.com/docs/set-up-your-account
+docs2ai https://developers.yousign.com/docs/set-up-your-account
 
 # One-shot: fetch and write to file
-doc2ctx https://developers.yousign.com/docs/set-up-your-account -o .ai/yousign.md
+docs2ai https://developers.yousign.com/docs/set-up-your-account -o .ai/yousign.md
 
 # Crawl mode: directory output (one .md per page + manifests)
 # Defaults to .ai/docs/<name>/ when no -o is given
-doc2ctx https://developers.yousign.com/docs/set-up-your-account --crawl --name yousign
+docs2ai https://developers.yousign.com/docs/set-up-your-account --crawl --name yousign
 
 # Crawl mode: explicit directory output
-doc2ctx https://developers.yousign.com/docs/set-up-your-account --crawl -o .ai/docs/yousign/
+docs2ai https://developers.yousign.com/docs/set-up-your-account --crawl -o .ai/docs/yousign/
 
 # Crawl mode: single-file output (backward compatible, when -o ends with .md)
-doc2ctx https://developers.yousign.com/docs/set-up-your-account --crawl -o .ai/yousign.md
+docs2ai https://developers.yousign.com/docs/set-up-your-account --crawl -o .ai/yousign.md
 
 # Add a source to project config (crawl sources default to directory output)
-doc2ctx add https://docs.stripe.com/api/charges --name stripe --crawl
+docs2ai add https://docs.stripe.com/api/charges --name stripe --crawl
 
 # Refresh all configured sources
-doc2ctx update
+docs2ai update
 
 # Refresh one source
-doc2ctx update --name stripe
+docs2ai update --name stripe
 
 # List configured sources
-doc2ctx list
+docs2ai list
+
+# Start MCP server (exposes docs to AI tools via Model Context Protocol)
+docs2ai serve                          # default: serves .ai/docs/
+docs2ai serve -d ./my-docs/            # custom directory
 ```
 
-## Config File Format (.doc2ctx.yaml)
+## MCP Server
+
+The `serve` command starts a Model Context Protocol (MCP) server over stdio, exposing fetched documentation to AI coding tools like Claude Code and Cursor.
+
+### How it works
+
+The server reads the on-disk directory structure produced by crawl mode (`manifest.json` → `_index.json` → `.md` files), loads all content into memory, and builds a full-text search index. It exposes 4 tools:
+
+| Tool | Input | Returns |
+|------|-------|---------|
+| `list_sources` | — | All sources with name, url, platform, pageCount |
+| `list_pages` | `source` | Pages in that source (title + path) |
+| `read_page` | `source`, `path` | Full markdown content of one page |
+| `search_docs` | `query`, `source?`, `limit?` | Matching pages (metadata only, no content) |
+
+### Claude Code configuration
+
+```json
+{
+  "mcpServers": {
+    "docs2ai": {
+      "command": "npx",
+      "args": ["docs2ai", "serve", "-d", ".ai/docs/"]
+    }
+  }
+}
+```
+
+### Architecture notes
+
+- **stdout is sacred** — The MCP server communicates over stdio. **All logging MUST go to stderr, never stdout.** Any stdout output that isn't valid MCP JSON-RPC will break the protocol. This means: no `console.log()`, no `consola`, no `process.stdout.write()` anywhere in the MCP codepath (`src/mcp/`, `src/commands/serve.ts`). If you need to log for debugging, use `process.stderr.write()` or `console.error()`.
+- **Dynamic imports enforce the boundary** — `serve.ts` uses `await import()` for `../mcp/server` and the MCP SDK. This keeps consola (used by fetch/crawl commands) from being loaded into the serve process. Do not convert these to static imports.
+- **No imports from `src/pipeline/` or `src/platforms/`** — the MCP server reads the on-disk format directly, keeping clean separation from the fetch pipeline. These modules use consola and would pollute stdout.
+- **Errors are silent** — `loader.ts` catches file-read errors and skips silently (no console output). This is intentional — logging would corrupt the stdio transport.
+- **Eager loading** — all markdown loaded at startup since the search index needs it. 100-200 pages is well within memory limits.
+- **Token-efficient** — `list_sources`, `list_pages`, and `search_docs` return metadata only. Only `read_page` returns full content, minimizing context window usage.
+
+## Config File Format (.docs2ai.yaml)
 
 ```yaml
 version: 1
@@ -197,7 +245,7 @@ if (crawl && -o doesn't end with .md)→ directory at -o path
 1. **Code blocks are sacred.** Never break, reformat, or lose code examples during extraction. Language tags and indentation must survive perfectly. Test this aggressively.
 2. **Playwright is optional.** The core static fetch path must work without Playwright installed. Detect its absence gracefully and prompt the user to install it only when needed for JS-rendered sites.
 3. **Platform strategies are pluggable.** Adding support for a new doc platform should mean adding one file in `src/platforms/` that implements the base interface. No changes to the pipeline.
-4. **Sensible defaults, full control.** The tool should work great with zero config (`doc2ctx <url>`), but power users can control crawl depth, output paths, and more.
+4. **Sensible defaults, full control.** The tool should work great with zero config (`docs2ai <url>`), but power users can control crawl depth, output paths, and more.
 5. **Deterministic and testable.** Use saved HTML fixtures for tests so they don't depend on live sites. The pipeline is pure functions where possible (input HTML → output Markdown).
 6. **Lean dependencies.** Don't add dependencies for things the stdlib can handle. Every dependency should earn its place.
 
@@ -244,3 +292,4 @@ NOT in scope for v0.1:
 - Some doc sites use custom web components (e.g. `<code-block>`, `<callout>`) that Turndown won't know about. Add custom Turndown rules for common ones.
 - When crawling, avoid infinite loops from circular links. Track visited URLs.
 - When stitching multi-page crawls into one file (single-file mode), add clear `## Page: <title>` separators and deduplicate repeated headers/footers. Directory mode avoids this problem by writing one file per page.
+- **MCP server + stdout**: The MCP stdio transport uses stdout for JSON-RPC messages. Any non-JSON-RPC output on stdout (e.g. `console.log`, consola, debug prints) will break the protocol and cause cryptic connection failures. Code in `src/mcp/` and `src/commands/serve.ts` must never write to stdout. Use `console.error()` or `process.stderr.write()` if you need debug output. The dynamic imports in `serve.ts` exist specifically to prevent consola from being loaded.
