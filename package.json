@@ -4,7 +4,7 @@
   "description": "Convert online documentation into AI-ready Markdown context files",
   "type": "module",
   "bin": {
-    "docs2ai": "./dist/cli.mjs"
+    "docs2ai": "dist/cli.mjs"
   },
   "scripts": {
     "dev": "tsx src/cli.ts",
