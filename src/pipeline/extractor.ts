@@ -36,9 +36,12 @@ export function extract(html: string, url: string): ExtractResult {
   // Fall through to Readability if selector extraction yields too little
 
   // Generic / fallback: Readability extraction
+  // Use the cleaned HTML (nav/footer/etc. already removed) so Readability
+  // doesn't mistake navigation for main content.
   let article: ReturnType<Readability["parse"]> = null;
   try {
-    const { document } = parseHTML(html);
+    const cleanedHtml = $.html();
+    const { document } = parseHTML(cleanedHtml);
     const reader = new Readability(document as any);
     article = reader.parse();
   } catch {
