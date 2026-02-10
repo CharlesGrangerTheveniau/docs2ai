@@ -60,9 +60,8 @@ describe("generic platform strategy", () => {
       expect(urls).toHaveLength(4);
     });
 
-    it("picks largest nav element as fallback", () => {
+    it("ignores raw nav elements (usually header/footer nav)", () => {
       const html = `<html><body>
-        <nav><a href="/about">About</a><a href="/pricing">Pricing</a></nav>
         <nav>
           <a href="/docs/a">A</a>
           <a href="/docs/b">B</a>
@@ -70,16 +69,6 @@ describe("generic platform strategy", () => {
           <a href="/docs/d">D</a>
           <a href="/docs/e">E</a>
         </nav>
-        <main><p>Content</p></main>
-      </body></html>`;
-      const urls = generic.discoverUrls!(html, base);
-      expect(urls).toHaveLength(5);
-      expect(urls[0]).toContain("/docs/");
-    });
-
-    it("returns empty when no sidebar found", () => {
-      const html = `<html><body>
-        <nav><a href="/about">About</a></nav>
         <main><p>Content</p></main>
       </body></html>`;
       const urls = generic.discoverUrls!(html, base);

@@ -85,21 +85,9 @@ export const generic: PlatformStrategy = {
       }
     }
 
-    // Fallback: find the <nav> element with the most internal links.
-    // Sidebars typically have many more links than header/footer navs.
-    let bestLinks: string[] = [];
-    $("nav").each((_, el) => {
-      const links = resolveLinks($, "a[href]", baseUrl, $(el));
-      if (links.length > bestLinks.length) {
-        bestLinks = links;
-      }
-    });
-
-    if (bestLinks.length >= MIN_SIDEBAR_LINKS) {
-      return bestLinks;
-    }
-
-    // No sidebar found — return empty so crawler keeps the tight URL prefix
+    // No sidebar found — return empty so crawler keeps the tight URL prefix.
+    // We intentionally don't fall back to raw <nav> elements because those
+    // are usually the site's header/footer navigation, not a doc sidebar.
     return [];
   },
 };
