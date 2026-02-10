@@ -1,6 +1,6 @@
 import * as cheerio from "cheerio";
 import * as readline from "node:readline";
-import { fetchPage } from "../pipeline/fetcher";
+import { fetchPage, fetchWithBrowser } from "../pipeline/fetcher";
 import {
   getCrawlPrefix,
   computeCommonPrefix,
@@ -107,9 +107,25 @@ export async function crawl(
           isFirstPage = false;
         }
 
-        const links = options.discoverUrls
+        let links = options.discoverUrls
           ? discoverLinksCustom(html, url, origin, pathPrefix, options.discoverUrls)
           : discoverLinks(html, url, origin, pathPrefix, options.navLinkSelector);
+
+        // If the first page yielded no in-bounds links, the static HTML may
+        // contain wrong origins (e.g. Vercel deploy URLs in an SPA).
+        // Re-fetch with a real browser to get JS-rendered links.
+        if (results.length === 1 && links.length === 0) {
+          try {
+            const browserHtml = await fetchWithBrowser(url);
+            results[0] = { url, html: browserHtml };
+            links = options.discoverUrls
+              ? discoverLinksCustom(browserHtml, url, origin, pathPrefix, options.discoverUrls)
+              : discoverLinks(browserHtml, url, origin, pathPrefix, options.navLinkSelector);
+          } catch {
+            // Browser fetch failed, continue with static HTML
+          }
+        }
+
         for (const link of links) {
           const normalized = normalizeUrl(link);
           if (!visited.has(normalized)) {
