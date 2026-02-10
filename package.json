@@ -1,6 +1,6 @@
 {
   "name": "docs2ai",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Convert online documentation into AI-ready Markdown context files",
   "type": "module",
   "bin": {
