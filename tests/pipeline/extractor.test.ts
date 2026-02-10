@@ -79,4 +79,25 @@ describe("extract", () => {
     const result = extract("<not-valid", "https://example.com/broken");
     expect(result.platform).toBe("generic");
   });
+
+  it("extracts both columns from two-column API layout", () => {
+    const html = loadFixture("generic-api-two-column.html");
+    const result = extract(html, "https://example.com/api/usage-records");
+    expect(result.platform).toBe("generic");
+    expect(result.title).toBe("Retrieve Usage Record");
+    // Left column content
+    expect(result.content).toContain("GET");
+    expect(result.content).toContain("/v1/usage-records/{id}");
+    expect(result.content).toContain("Path Parameters");
+    // Right column content
+    expect(result.content).toContain("Authorization: Bearer");
+    expect(result.content).toContain("ur_abc123");
+  });
+
+  it("strips button text from generic extraction", () => {
+    const html = loadFixture("generic-api-two-column.html");
+    const result = extract(html, "https://example.com/api/usage-records");
+    expect(result.content).not.toContain("Copy to clipboard");
+    expect(result.content).not.toContain(">Copy<");
+  });
 });

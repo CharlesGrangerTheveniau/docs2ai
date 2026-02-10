@@ -25,6 +25,10 @@ describe("generic platform strategy", () => {
     expect(selectors).toContain("footer");
     expect(selectors).toContain("script");
     expect(selectors).toContain("style");
+    expect(selectors).toContain("button");
+    expect(selectors).toContain("[role='tablist']");
+    expect(selectors).toContain("[class*='copy-button']");
+    expect(selectors).toContain("[class*='clipboard']");
   });
 
   describe("discoverUrls", () => {

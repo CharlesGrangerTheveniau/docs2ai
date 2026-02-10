@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Retrieve Usage Record - API Reference</title>
+</head>
+<body>
+  <nav>
+    <a href="/">Home</a>
+    <a href="/docs">Docs</a>
+    <a href="/api">API</a>
+  </nav>
+  <header>
+    <div class="logo">API Docs</div>
+  </header>
+  <main>
+    <div class="api-reference two-column-layout">
+      <div class="api-content-left">
+        <h1>Retrieve Usage Record</h1>
+        <div class="method-badge">
+          <span>GET</span> /v1/usage-records/{id}
+        </div>
+        <p>Retrieves the usage record with the given ID. Returns the usage record object if a valid identifier was provided.</p>
+        <div class="callout info">
+          <p>Note: Usage records are updated every 15 minutes and reflect metered billing data.</p>
+        </div>
+        <h2>Path Parameters</h2>
+        <table>
+          <thead><tr><th>Name</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td>id</td><td>string</td><td>The unique identifier of the usage record.</td></tr>
+          </tbody>
+        </table>
+        <h2>Response</h2>
+        <p>Returns a usage record object on success. Returns an error if the record ID is invalid.</p>
+        <div role="tablist">
+          <button role="tab" aria-selected="true">200 OK</button>
+          <button role="tab">404 Not Found</button>
+        </div>
+      </div>
+      <div class="api-code-right">
+        <h3>Request</h3>
+        <div class="code-example">
+          <button class="copy-button">Copy</button>
+          <pre><code class="language-bash">curl https://api.example.com/v1/usage-records/ur_abc123 \
+  -H "Authorization: Bearer {token}" \
+  -H "Accept: application/json"</code></pre>
+        </div>
+        <h3>Response</h3>
+        <div class="code-example">
+          <button class="clipboard-copy">Copy to clipboard</button>
+          <pre><code class="language-json">{
+  "id": "ur_abc123",
+  "object": "usage_record",
+  "quantity": 150,
+  "subscription_item_id": "si_xyz789",
+  "timestamp": 1704067200,
+  "action": "increment"
+}</code></pre>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer>
+    <p>Copyright 2025 Example Inc.</p>
+  </footer>
+</body>
+</html>

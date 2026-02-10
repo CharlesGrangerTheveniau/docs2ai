@@ -52,16 +52,28 @@ export const mintlify: PlatformStrategy = {
       }
     });
 
-    // Resolve to absolute URLs
     const origin = new URL(baseUrl).origin;
-    // Determine docs base path (e.g. /docs from /docs/api-reference/intro)
-    const basePath = new URL(baseUrl).pathname.split("/").slice(0, 2).join("/");
+    const pathname = new URL(baseUrl).pathname;
+
+    // Infer the Mintlify app mount prefix.
+    // Raw paths in __next_f are app-relative (e.g. /welcome, /endpoints/...).
+    // When the app is mounted at a subpath (e.g. /docs/rest-api/reference),
+    // we find the prefix by matching a raw path to the end of the start URL.
+    let mountPrefix = "";
+    for (const p of paths) {
+      if (pathname !== p && pathname.endsWith(p)) {
+        const candidate = pathname.slice(0, pathname.length - p.length);
+        if (candidate.length > mountPrefix.length) {
+          mountPrefix = candidate;
+        }
+      }
+    }
 
     return [...paths].map((p) => {
-      if (p.startsWith(basePath)) {
+      if (mountPrefix && p.startsWith(mountPrefix)) {
         return origin + p;
       }
-      return origin + basePath + p;
+      return origin + mountPrefix + p;
     });
   },
 };

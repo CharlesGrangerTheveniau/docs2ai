@@ -22,20 +22,18 @@ export function extract(html: string, url: string): ExtractResult {
 
   const title = extractTitle($);
 
-  // Non-generic platforms: use selector-based extraction first
-  if (platform !== "generic") {
-    for (const sel of strategy.removeSelectors()) {
-      $(sel).remove();
-    }
-
-    const contentEl = $(strategy.contentSelector()).first();
-    const selectorContent = contentEl.html();
-
-    if (selectorContent && selectorContent.trim().length >= 100) {
-      return { content: selectorContent, title, platform };
-    }
-    // Fall through to Readability if selector extraction yields too little
+  // Use selector-based extraction first for all platforms
+  for (const sel of strategy.removeSelectors()) {
+    $(sel).remove();
   }
+
+  const contentEl = $(strategy.contentSelector()).first();
+  const selectorContent = contentEl.html();
+
+  if (selectorContent && selectorContent.trim().length >= 100) {
+    return { content: selectorContent, title, platform };
+  }
+  // Fall through to Readability if selector extraction yields too little
 
   // Generic / fallback: Readability extraction
   let article: ReturnType<Readability["parse"]> = null;

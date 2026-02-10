@@ -111,4 +111,21 @@ describe("full pipeline integration", () => {
     expect(markdown).toContain("npm install docmunch");
     expect(markdown).toContain("yarn add docmunch");
   });
+
+  it("processes two-column API doc end-to-end", () => {
+    const { markdown, title, platform } = fullPipeline(
+      "generic-api-two-column.html",
+      "https://example.com/api/usage-records"
+    );
+    expect(platform).toBe("generic");
+    expect(title).toBe("Retrieve Usage Record");
+    // Endpoint preserved
+    expect(markdown).toContain("/v1/usage-records/{id}");
+    // Curl example from right column
+    expect(markdown).toContain("Authorization: Bearer");
+    // JSON response from right column
+    expect(markdown).toContain("ur_abc123");
+    // Button text stripped
+    expect(markdown).not.toContain("Copy to clipboard");
+  });
 });
