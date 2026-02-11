@@ -12,6 +12,7 @@ export interface WriterOptions {
   sourceUrl: string;
   title: string;
   platform: string;
+  force?: boolean;
 }
 
 /**
@@ -32,7 +33,7 @@ export function write(
   });
 
   if (outputPath) {
-    if (existsSync(outputPath)) {
+    if (!options.force && existsSync(outputPath)) {
       try {
         const existing = readFileSync(outputPath, "utf-8");
         if (stripTimestamp(existing) === stripTimestamp(content)) return false;
@@ -66,7 +67,7 @@ export function writePage(
     docmunch_version: "0.2.0",
   });
 
-  if (existsSync(filePath)) {
+  if (!options.force && existsSync(filePath)) {
     try {
       const existing = readFileSync(filePath, "utf-8");
       if (stripTimestamp(existing) === stripTimestamp(content)) return false;
@@ -100,7 +101,8 @@ export interface WritePagesResult {
 export function writePages(
   pages: PageEntry[],
   outputDir: string,
-  basePrefix: string
+  basePrefix: string,
+  options?: { force?: boolean }
 ): WritePagesResult {
   const usedPaths = new Set<string>();
   const entries: { title: string; path: string }[] = [];
@@ -123,6 +125,7 @@ export function writePages(
       sourceUrl: page.url,
       title: page.title,
       platform: page.platform,
+      force: options?.force,
     });
     if (didWrite) written++;
 

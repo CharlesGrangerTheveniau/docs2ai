@@ -28,6 +28,11 @@ export const updateCommand = defineCommand({
       type: "string",
       description: "Update only the named source",
     },
+    force: {
+      type: "boolean",
+      description: "Force rewrite all files, even if content is unchanged",
+      default: false,
+    },
   },
   async run({ args }) {
     const result = loadConfig();
@@ -39,6 +44,7 @@ export const updateCommand = defineCommand({
     const { config, configPath } = result;
     const configDir = dirname(configPath);
     const filterName = args.name as string | undefined;
+    const force = args.force as boolean;
 
     const sources = filterName
       ? config.sources.filter((s) => s.name === filterName)
@@ -86,9 +92,9 @@ export const updateCommand = defineCommand({
           });
 
           const firstPlatform = pageEntries[0]?.platform || "generic";
-          const { entries: manifestPages, written } = writePages(pageEntries, outputDir, effectivePrefix);
+          const { entries: manifestPages, written } = writePages(pageEntries, outputDir, effectivePrefix, { force });
 
-          if (written > 0) {
+          if (written > 0 || force) {
             const siteMeta = extractSiteMeta(firstHtml, source.url);
             const sourceManifest = buildSourceManifest(
               source.name,
@@ -139,6 +145,7 @@ export const updateCommand = defineCommand({
             sourceUrl: source.url,
             title: firstTitle,
             platform: firstPlatform,
+            force,
           });
 
           consola.success(`Updated "${source.name}" → ${outputPath}`);
@@ -154,6 +161,7 @@ export const updateCommand = defineCommand({
           sourceUrl: source.url,
           title,
           platform,
+          force,
         });
 
         consola.success(`Updated "${source.name}" → ${outputPath}`);

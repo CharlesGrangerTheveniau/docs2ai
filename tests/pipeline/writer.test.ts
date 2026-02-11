@@ -75,6 +75,23 @@ describe("write", () => {
     expect(result).toBe(false);
     expect(writeFileSync).not.toHaveBeenCalled();
   });
+
+  it("force-writes even when content is unchanged", () => {
+    (existsSync as any).mockReturnValue(true);
+    (readFileSync as any).mockReturnValue(
+      "---\nsource: 'https://example.com'\nfetched_at: '2025-01-01T00:00:00.000Z'\nplatform: generic\ntitle: Test\ndocmunch_version: 0.2.0\n---\n# Test\n"
+    );
+
+    const result = write("# Test", "/tmp/test.md", {
+      sourceUrl: "https://example.com",
+      title: "Test",
+      platform: "generic",
+      force: true,
+    });
+
+    expect(result).toBe(true);
+    expect(writeFileSync).toHaveBeenCalled();
+  });
 });
 
 describe("writePage", () => {
@@ -91,6 +108,23 @@ describe("writePage", () => {
     expect(content).toContain("https://example.com/docs/intro");
     expect(content).toContain("title: Intro");
     expect(content).toContain("# Intro");
+  });
+
+  it("force-writes even when content is unchanged", () => {
+    (existsSync as any).mockReturnValue(true);
+    (readFileSync as any).mockReturnValue(
+      "---\nsource: 'https://example.com/docs/intro'\nfetched_at: '2025-01-01T00:00:00.000Z'\nplatform: mintlify\ntitle: Intro\ndocmunch_version: 0.2.0\n---\n# Intro\n"
+    );
+
+    const result = writePage("# Intro", "/out/docs/intro.md", {
+      sourceUrl: "https://example.com/docs/intro",
+      title: "Intro",
+      platform: "mintlify",
+      force: true,
+    });
+
+    expect(result).toBe(true);
+    expect(writeFileSync).toHaveBeenCalled();
   });
 });
 
