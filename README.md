@@ -107,14 +107,46 @@ Alternatively, create a `.cursor/mcp.json` file at your project root:
 
 Restart Cursor for the server to be picked up. A green dot next to the server name in Settings → MCP confirms it's running.
 
+### VS Code (GitHub Copilot)
+
+Requires the [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) extension. Create `.vscode/mcp.json` at the project root:
+
+```json
+{
+  "servers": {
+    "docmunch": {
+      "command": "npx",
+      "args": ["docmunch", "serve", "-d", ".ai/docs/"]
+    }
+  }
+}
+```
+
+### Windsurf
+
+Open Settings → **MCP** → **Add Server**, or create `.windsurf/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "docmunch": {
+      "command": "npx",
+      "args": ["docmunch", "serve", "-d", ".ai/docs/"]
+    }
+  }
+}
+```
+
 ### Available tools
 
 Once connected, your AI assistant has access to:
 
 - **`list_sources`** — see all available documentation sources with metadata
 - **`list_pages`** — list pages within a source
-- **`read_page`** — read the full markdown content of a page
+- **`read_page`** — read the full markdown content of a page, with optional section filtering to save tokens
 - **`search_docs`** — full-text search across all docs with preview excerpts
+
+The `read_page` tool supports an optional `sections` parameter — pass an array of heading names to retrieve only those sections instead of the full page. This reduces token usage when you only need specific parts of a doc page.
 
 ### Options
 

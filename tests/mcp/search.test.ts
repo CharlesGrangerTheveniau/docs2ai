@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildSearchIndex, generatePreview } from "../../src/mcp/search";
+import {
+  buildSearchIndex,
+  generatePreview,
+  extractSections,
+  listSections,
+} from "../../src/mcp/search";
 import type { LoadedPage } from "../../src/mcp/loader";
 
 const testPages: LoadedPage[] = [
@@ -129,5 +134,88 @@ describe("generatePreview", () => {
 
   it("handles empty content", () => {
     expect(generatePreview("")).toBe("");
+  });
+});
+
+const sectionContent = `# API Reference
+
+## Authentication
+
+Use API keys to authenticate.
+Pass the key in the Authorization header.
+
+## Rate Limits
+
+Default rate limit is 100 requests per minute.
+Contact support for higher limits.
+
+### Burst Mode
+
+Burst mode allows 500 requests per minute for 10 seconds.
+
+## Errors
+
+All errors return JSON with a message field.
+`;
+
+describe("extractSections", () => {
+  it("extracts a single section by heading text", () => {
+    const result = extractSections(sectionContent, ["Authentication"]);
+    expect(result).toContain("## Authentication");
+    expect(result).toContain("Authorization header");
+    expect(result).not.toContain("Rate Limits");
+  });
+
+  it("extracts multiple sections", () => {
+    const result = extractSections(sectionContent, [
+      "Authentication",
+      "Errors",
+    ]);
+    expect(result).toContain("## Authentication");
+    expect(result).toContain("## Errors");
+    expect(result).not.toContain("Rate Limits");
+  });
+
+  it("matches case-insensitively", () => {
+    const result = extractSections(sectionContent, ["authentication"]);
+    expect(result).toContain("## Authentication");
+  });
+
+  it("matches partial heading text", () => {
+    const result = extractSections(sectionContent, ["Rate"]);
+    expect(result).toContain("## Rate Limits");
+    expect(result).toContain("Burst Mode");
+  });
+
+  it("includes nested subsections", () => {
+    const result = extractSections(sectionContent, ["Rate Limits"]);
+    expect(result).toContain("## Rate Limits");
+    expect(result).toContain("### Burst Mode");
+    expect(result).toContain("500 requests");
+  });
+
+  it("returns null when no sections match", () => {
+    const result = extractSections(sectionContent, ["Nonexistent"]);
+    expect(result).toBeNull();
+  });
+
+  it("returns null for empty sections array", () => {
+    const result = extractSections(sectionContent, []);
+    expect(result).toBeNull();
+  });
+});
+
+describe("listSections", () => {
+  it("returns all headings up to h3", () => {
+    const headings = listSections(sectionContent);
+    expect(headings).toContain("API Reference");
+    expect(headings).toContain("Authentication");
+    expect(headings).toContain("Rate Limits");
+    expect(headings).toContain("Burst Mode");
+    expect(headings).toContain("Errors");
+  });
+
+  it("returns empty array for content without headings", () => {
+    expect(listSections("Just plain text")).toEqual([]);
   });
 });

@@ -193,7 +193,7 @@ The server reads the on-disk directory structure produced by crawl mode (`manife
 |------|-------|---------|
 | `list_sources` | — | All sources with name, url, platform, pageCount, displayName, description, iconUrl |
 | `list_pages` | `source` | Pages in that source (title + path) |
-| `read_page` | `source`, `path` | Full markdown content of one page |
+| `read_page` | `source`, `path`, `sections?` | Full markdown content of one page, or only specific sections if `sections` array is provided |
 | `search_docs` | `query`, `source?`, `limit?` | Matching pages with metadata + preview excerpt (~200 chars) |
 
 ### Claude Code setup
@@ -234,7 +234,7 @@ Restart Cursor for the server to be picked up. A green dot in Settings → MCP c
 - **No imports from `src/pipeline/` or `src/platforms/`** — the MCP server reads the on-disk format directly, keeping clean separation from the fetch pipeline. These modules use consola and would pollute stdout.
 - **Errors are silent** — `loader.ts` catches file-read errors and skips silently (no console output). This is intentional — logging would corrupt the stdio transport.
 - **Eager loading** — all markdown loaded at startup since the search index needs it. 100-200 pages is well within memory limits.
-- **Token-efficient** — `list_sources`, `list_pages`, and `search_docs` return metadata only (search_docs includes ~200 char previews). Only `read_page` returns full content, minimizing context window usage.
+- **Token-efficient** — `list_sources`, `list_pages`, and `search_docs` return metadata only (search_docs includes ~200 char previews). `read_page` returns full content by default, but supports optional `sections` filtering to return only specific heading sections, reducing token usage.
 - **Registry plumbing** — `createMcpServer` accepts optional `RegistryOptions` (`url`, `token`, `team`) for future remote source loading. The plumbing is in place but actual remote fetching is deferred until the registry API is finalized.
 
 ## Config File Format (.docmunch.yaml)
@@ -397,6 +397,7 @@ All core functionality is implemented and working:
 16. Smart change detection (skips writing unchanged files, ignoring timestamp differences)
 17. Graceful Ctrl+C during crawl with save/discard prompt
 18. `--registry` and `--team` flags on serve (plumbing for future remote loading)
+19. Section filtering on `read_page` MCP tool (optional `sections` param to reduce tokens)
 
 ### Upcoming / not yet implemented
 

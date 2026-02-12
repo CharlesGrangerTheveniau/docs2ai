@@ -1,7 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { loadDocs } from "./loader";
-import { buildSearchIndex } from "./search";
+import { buildSearchIndex, extractSections, listSections } from "./search";
 
 /** Options for remote registry integration. */
 export interface RegistryOptions {
@@ -85,19 +85,52 @@ export function createMcpServer(
 
   server.tool(
     "read_page",
-    "Read the full markdown content of a documentation page",
+    "Read the full markdown content of a documentation page. Optionally filter to specific sections by heading text to reduce token usage.",
     {
       source: z.string().describe("Name of the documentation source"),
       path: z.string().describe("Path of the page within the source (from list_pages)"),
+      sections: z
+        .array(z.string())
+        .optional()
+        .describe(
+          "Optional list of section heading names to extract (case-insensitive partial match). Returns only those sections instead of the full page."
+        ),
     },
-    async ({ source, path }) => {
-      const page = docs.pages.find((p) => p.source === source && p.path === path);
+    async ({ source, path, sections }) => {
+      const page = docs.pages.find(
+        (p) => p.source === source && p.path === path
+      );
       if (!page) {
         return {
-          content: [{ type: "text", text: `Page "${path}" not found in source "${source}". Use list_pages to see available pages.` }],
+          content: [
+            {
+              type: "text",
+              text: `Page "${path}" not found in source "${source}". Use list_pages to see available pages.`,
+            },
+          ],
           isError: true,
         };
       }
+
+      if (sections && sections.length > 0) {
+        const filtered = extractSections(page.content, sections);
+        if (!filtered) {
+          const available = listSections(page.content);
+          return {
+            content: [
+              {
+                type: "text",
+                text: `No sections matching ${JSON.stringify(sections)} found. Available sections: ${JSON.stringify(available)}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+        return {
+          content: [{ type: "text", text: filtered }],
+        };
+      }
+
       return {
         content: [{ type: "text", text: page.content }],
       };

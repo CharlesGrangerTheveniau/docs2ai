@@ -101,6 +101,42 @@ describe("MCP server", () => {
 
       expect(result.isError).toBe(true);
     });
+
+    it("filters content by sections param", async () => {
+      const result = await callTool(server, "read_page", {
+        source: "acme",
+        path: "guides/authentication.md",
+        sections: ["OAuth"],
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain("OAuth");
+      expect(result.content[0].text).toContain("authorization code flow");
+      expect(result.content[0].text).not.toContain("API Keys");
+    });
+
+    it("returns error with available sections when section not found", async () => {
+      const result = await callTool(server, "read_page", {
+        source: "acme",
+        path: "guides/authentication.md",
+        sections: ["Nonexistent"],
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain("Available sections");
+      expect(result.content[0].text).toContain("API Keys");
+    });
+
+    it("returns full content when sections param is omitted", async () => {
+      const result = await callTool(server, "read_page", {
+        source: "acme",
+        path: "guides/authentication.md",
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(result.content[0].text).toContain("API Keys");
+      expect(result.content[0].text).toContain("OAuth");
+    });
   });
 
   describe("search_docs", () => {
