@@ -16,7 +16,7 @@ URL → Resolver → Fetcher → Extractor → Transformer → Writer
 - **Fetcher**: Retrieves the raw HTML. Three-tier fallback: (1) fast static fetch via `ofetch`, (2) headless Playwright if static fetch fails (403/406/429), (3) visible (non-headless) Playwright if bot protection challenge is detected (Cloudflare, etc.). Playwright is auto-installed on first need. Rate limiting and politeness logic lives here.
 - **Extractor**: Pulls meaningful content from raw HTML. Uses platform-specific selectors first (e.g. known content containers for Mintlify, Docusaurus), falls back to `@mozilla/readability` for generic extraction. Uses `cheerio` for DOM querying. Strips navbars, footers, cookie banners, sidebars.
 - **Transformer**: Converts clean HTML to Markdown via `Turndown` + `turndown-plugin-gfm`. Custom rules handle code blocks, callouts/admonitions, tabbed content, and tables. Code block preservation (language tags, indentation) is critical — never break code examples.
-- **Writer**: Outputs Markdown with YAML frontmatter (source URL, fetch date, platform, title). Two output modes for crawl: single-file (all pages stitched with `---` separators) or directory (one `.md` per page with `_index.json` source manifest and `manifest.json` root manifest). Manages the `.docmunch.yaml` config file for multi-source projects.
+- **Writer**: Outputs Markdown with YAML frontmatter (source URL, fetch date, platform, title). Computes per-page token estimates and SHA-256 content hashes. Two output modes for crawl: single-file (all pages stitched with `---` separators) or directory (one `.md` per page with `_index.json` source manifest and `manifest.json` root manifest). Manages the `.docmunch.yaml` config file for multi-source projects.
 
 ## Tech Stack
 
@@ -24,12 +24,13 @@ URL → Resolver → Fetcher → Extractor → Transformer → Writer
 - **Language**: TypeScript (strict mode)
 - **CLI framework**: `citty` (from UnJS) for command parsing
 - **Terminal output**: `consola` for logs, spinners, progress
-- **HTTP fetching**: `ofetch` for static pages
+- **HTTP fetching**: `ofetch` for static pages and registry API calls
 - **Browser automation**: `playwright` (optional/lazy dependency) for JS-rendered sites
 - **DOM parsing**: `cheerio` for HTML querying and platform-specific selectors
 - **Content extraction**: `@mozilla/readability` for generic content isolation
 - **HTML → Markdown**: `turndown` + `turndown-plugin-gfm`
 - **Config**: `js-yaml` for `.docmunch.yaml`, `gray-matter` for frontmatter
+- **Hashing**: `node:crypto` (SHA-256) for content hashing
 - **MCP**: `@modelcontextprotocol/sdk` for Model Context Protocol server, `zod` for tool input schemas
 - **Search**: `minisearch` for full-text search over loaded docs
 - **Build**: `tsup` for building the CLI
@@ -47,16 +48,19 @@ docmunch/
 │   │   ├── add.ts           # `docmunch add <url>` — add source to config
 │   │   ├── update.ts        # `docmunch update` — refresh all sources
 │   │   ├── list.ts          # `docmunch list` — show configured sources
-│   │   └── serve.ts         # `docmunch serve` — start MCP server
+│   │   ├── serve.ts         # `docmunch serve` — start MCP server
+│   │   └── pull.ts          # `docmunch pull <name>` — download from registry
 │   ├── pipeline/
 │   │   ├── resolver.ts      # Platform detection
 │   │   ├── fetcher.ts       # HTML fetching (static + browser)
 │   │   ├── extractor.ts     # Content extraction from HTML
 │   │   ├── transformer.ts   # HTML → Markdown conversion
-│   │   ├── writer.ts        # File output + frontmatter (single & directory modes)
-│   │   └── manifest.ts      # JSON manifest generation (_index.json, manifest.json)
+│   │   ├── writer.ts        # File output + frontmatter + token/hash computation
+│   │   ├── manifest.ts      # JSON manifest generation (_index.json, manifest.json)
+│   │   └── meta-extractor.ts # Site-level metadata from <head> (og:*, icons, etc.)
 │   ├── platforms/           # Platform-specific strategies
 │   │   ├── base.ts          # Base platform interface
+│   │   ├── registry.ts      # Platform strategy registry (getStrategy)
 │   │   ├── mintlify.ts
 │   │   ├── docusaurus.ts
 │   │   ├── gitbook.ts
@@ -67,8 +71,8 @@ docmunch/
 │   │   └── boundary.ts      # Crawl boundary detection (URL prefix, nav scope)
 │   ├── mcp/
 │   │   ├── loader.ts        # Reads docs directory into memory
-│   │   ├── search.ts        # Full-text search with MiniSearch
-│   │   └── server.ts        # MCP server with 4 tools
+│   │   ├── search.ts        # Full-text search with MiniSearch + preview generation
+│   │   └── server.ts        # MCP server with 4 tools + registry options plumbing
 │   ├── config/
 │   │   ├── schema.ts        # Config file types
 │   │   └── manager.ts       # Read/write .docmunch.yaml
@@ -76,16 +80,21 @@ docmunch/
 │       ├── url.ts           # URL normalization, validation, hostname slugging
 │       ├── slug.ts          # Pathname-based slugging for directory output
 │       ├── dedup.ts         # Content deduplication for multi-page crawls
-│       └── tokens.ts        # Token estimation (future)
+│       └── tokens.ts        # Token estimation (~4 chars/token heuristic)
 ├── tests/
-│   ├── pipeline/
-│   ├── platforms/
-│   └── fixtures/            # Saved HTML snapshots for deterministic tests
+│   ├── pipeline/            # resolver, extractor, transformer, writer, manifest, meta-extractor
+│   ├── platforms/           # mintlify, docusaurus, gitbook, readme, generic
+│   ├── mcp/                 # loader, search, server
+│   ├── crawl/               # boundary
+│   ├── config/              # manager
+│   ├── integration/         # full pipeline tests
+│   ├── utils/               # slug, tokens
+│   └── fixtures/            # Saved HTML snapshots + MCP doc fixtures
 ├── package.json
 ├── tsconfig.json
 ├── tsup.config.ts
 ├── vitest.config.ts
-├── .docmunch.yaml            # Example config
+├── .docmunch.yaml
 ├── CLAUDE.md
 └── README.md
 ```
@@ -109,6 +118,9 @@ docmunch https://developers.yousign.com/docs/set-up-your-account --crawl -o .ai/
 # Crawl mode: single-file output (backward compatible, when -o ends with .md)
 docmunch https://developers.yousign.com/docs/set-up-your-account --crawl -o .ai/yousign.md
 
+# Force rewrite (skip change detection)
+docmunch https://docs.stripe.com/api/charges --crawl --name stripe --force
+
 # Add a source to project config (crawl sources default to directory output)
 docmunch add https://docs.stripe.com/api/charges --name stripe --crawl
 
@@ -121,10 +133,33 @@ docmunch update --name stripe
 # List configured sources
 docmunch list
 
+# Download pre-crawled docs from registry
+docmunch pull stripe
+docmunch pull stripe --registry-url https://custom.registry.dev --token <token>
+
 # Start MCP server (exposes docs to AI tools via Model Context Protocol)
 docmunch serve                          # default: serves .ai/docs/
 docmunch serve -d ./my-docs/            # custom directory
+docmunch serve --registry               # stream from hosted registry (future)
+docmunch serve --registry --team myteam # scoped to team (future)
 ```
+
+## Pull Command
+
+The `pull` command downloads a pre-crawled documentation package from the hosted registry API.
+
+```bash
+docmunch pull <name> [--registry-url <url>] [--token <token>] [--force]
+```
+
+- `name` — positional, required (source name like "stripe")
+- `--registry-url` — base URL of registry API (default: `https://docmunch.dev`, overridable via `DOCMUNCH_REGISTRY_URL` env var)
+- `--token` — auth token for paid access (default from `DOCMUNCH_TOKEN` env var)
+- `--force` — overwrite existing files even if unchanged
+
+**Flow**: Hits `GET {registryUrl}/api/pull/{name}`, downloads each page's `.md` content, writes to `{outputDir}/{name}/`, builds `_index.json` and updates `manifest.json`, and optionally adds the source to `.docmunch.yaml`.
+
+**Note**: Requires the hosted registry API (Repo 2) to be available. Can be tested against a mock endpoint.
 
 ## MCP Server
 
@@ -132,14 +167,14 @@ The `serve` command starts a Model Context Protocol (MCP) server over stdio, exp
 
 ### How it works
 
-The server reads the on-disk directory structure produced by crawl mode (`manifest.json` → `_index.json` → `.md` files), loads all content into memory, and builds a full-text search index. It exposes 4 tools:
+The server reads the on-disk directory structure produced by crawl mode (`manifest.json` → `_index.json` → `.md` files), loads all content into memory, and builds a full-text search index with previews. It exposes 4 tools:
 
 | Tool | Input | Returns |
 |------|-------|---------|
-| `list_sources` | — | All sources with name, url, platform, pageCount |
+| `list_sources` | — | All sources with name, url, platform, pageCount, displayName, description, iconUrl |
 | `list_pages` | `source` | Pages in that source (title + path) |
 | `read_page` | `source`, `path` | Full markdown content of one page |
-| `search_docs` | `query`, `source?`, `limit?` | Matching pages (metadata only, no content) |
+| `search_docs` | `query`, `source?`, `limit?` | Matching pages with metadata + preview excerpt (~200 chars) |
 
 ### Claude Code setup
 
@@ -179,7 +214,8 @@ Restart Cursor for the server to be picked up. A green dot in Settings → MCP c
 - **No imports from `src/pipeline/` or `src/platforms/`** — the MCP server reads the on-disk format directly, keeping clean separation from the fetch pipeline. These modules use consola and would pollute stdout.
 - **Errors are silent** — `loader.ts` catches file-read errors and skips silently (no console output). This is intentional — logging would corrupt the stdio transport.
 - **Eager loading** — all markdown loaded at startup since the search index needs it. 100-200 pages is well within memory limits.
-- **Token-efficient** — `list_sources`, `list_pages`, and `search_docs` return metadata only. Only `read_page` returns full content, minimizing context window usage.
+- **Token-efficient** — `list_sources`, `list_pages`, and `search_docs` return metadata only (search_docs includes ~200 char previews). Only `read_page` returns full content, minimizing context window usage.
+- **Registry plumbing** — `createMcpServer` accepts optional `RegistryOptions` (`url`, `token`, `team`) for future remote source loading. The plumbing is in place but actual remote fetching is deferred until the registry API is finalized.
 
 ## Config File Format (.docmunch.yaml)
 
@@ -210,7 +246,7 @@ source: https://developers.yousign.com/docs/set-up-your-account
 fetched_at: 2025-02-08T14:30:00Z
 platform: mintlify
 title: Set Up Your Account
-docmunch_version: 0.1.0
+docmunch_version: 0.2.0
 ---
 
 # Set Up Your Account
@@ -242,12 +278,42 @@ Each page `.md` has the same frontmatter as single-file output. The `_index.json
   "url": "https://developers.yousign.com/docs/set-up-your-account",
   "platform": "mintlify",
   "fetched_at": "2025-02-08T14:30:00Z",
+  "total_tokens": 12500,
   "pages": [
-    { "title": "Set Up Your Account", "path": "set-up-your-account.md" },
-    { "title": "Authentication", "path": "guides/authentication.md" }
+    { "title": "Set Up Your Account", "path": "set-up-your-account.md", "token_count": 850, "content_hash": "a1b2c3..." },
+    { "title": "Authentication", "path": "guides/authentication.md", "token_count": 1200, "content_hash": "d4e5f6..." }
+  ],
+  "display_name": "Yousign Docs",
+  "description": "Official Yousign API documentation",
+  "icon_url": "https://developers.yousign.com/favicon.ico",
+  "page_count": 2
+}
+```
+
+The root `manifest.json`:
+
+```json
+{
+  "sources": [
+    {
+      "name": "yousign",
+      "path": "yousign/",
+      "fetched_at": "2025-02-08T14:30:00Z",
+      "display_name": "Yousign Docs",
+      "description": "Official Yousign API documentation",
+      "icon_url": "https://developers.yousign.com/favicon.ico",
+      "page_count": 15,
+      "total_tokens": 12500
+    }
   ]
 }
 ```
+
+### Manifest fields
+
+- **`token_count`** (per page): Estimated token count of the page's markdown content (~4 chars/token heuristic). Useful for AI context budgeting.
+- **`content_hash`** (per page): SHA-256 hash of the markdown body (post-transform, excluding frontmatter). Enables smart refresh — only re-process changed pages.
+- **`total_tokens`** (per source): Sum of all page token counts.
 
 ### Output mode decision logic
 
@@ -265,7 +331,7 @@ if (crawl && -o doesn't end with .md)→ directory at -o path
 3. **Platform strategies are pluggable.** Adding support for a new doc platform should mean adding one file in `src/platforms/` that implements the base interface. No changes to the pipeline.
 4. **Sensible defaults, full control.** The tool should work great with zero config (`docmunch <url>`), but power users can control crawl depth, output paths, and more.
 5. **Deterministic and testable.** Use saved HTML fixtures for tests so they don't depend on live sites. The pipeline is pure functions where possible (input HTML → output Markdown).
-6. **Lean dependencies.** Don't add dependencies for things the stdlib can handle. Every dependency should earn its place.
+6. **Lean dependencies.** Don't add dependencies for things the stdlib can handle. Every dependency should earn its place. Token estimation uses a simple heuristic, content hashing uses `node:crypto`.
 
 ## Coding Conventions
 
@@ -280,28 +346,44 @@ if (crawl && -o doesn't end with .md)→ directory at -o path
 
 ## Testing Approach
 
+- 162 tests across 19 test files
 - Unit tests for each pipeline stage using HTML fixtures
 - Integration tests that run the full pipeline on fixture files
 - Platform-specific tests with saved HTML from each doc site
+- MCP server tests (loader, search with previews, server tool handlers)
+- Utility tests (slug generation, token estimation)
 - No live network calls in tests (mock fetch, use fixtures)
 - Test code block preservation specifically — this is the most important quality signal
 
-## Current Focus (v0.1)
+## Current State (v0.2)
 
-Ship a working CLI that can:
-1. Take a single URL and output clean Markdown to stdout or a file
-2. Detect and handle at least: Mintlify, Docusaurus, GitBook, ReadMe, and generic sites
-3. Preserve code blocks perfectly
-4. Include proper frontmatter
-5. Support crawl mode with directory output (one .md per page + JSON manifests)
+All core functionality is implemented and working:
+
+1. Single URL fetch with stdout or file output
+2. Platform detection: Mintlify, Docusaurus, GitBook, ReadMe, and generic (Readability fallback)
+3. Perfect code block preservation
+4. YAML frontmatter on all output
+5. Crawl mode with directory output (one .md per page + JSON manifests)
 6. Backward-compatible single-file crawl output when `-o file.md` is used
+7. Config management via `.docmunch.yaml` (`add`, `update`, `list` commands)
+8. MCP server with 4 tools (list_sources, list_pages, read_page, search_docs with previews)
+9. Site metadata extraction (display_name, description, icon_url, og_image, language)
+10. Token estimation per page (`token_count`) and source (`total_tokens`)
+11. Content hashing per page (`content_hash`, SHA-256)
+12. Search result previews (~200 char excerpts) in MCP search_docs
+13. `pull` command for downloading from hosted registry
+14. `--force` flag for forcing rewrites even when content is unchanged
+15. Smart change detection (skips writing unchanged files, ignoring timestamp differences)
+16. Graceful Ctrl+C during crawl with save/discard prompt
+17. `--registry` and `--team` flags on serve (plumbing for future remote loading)
 
-NOT in scope for v0.1:
+### Upcoming / not yet implemented
+
+- Registry API remote loading in MCP server (plumbed, waiting for Repo 2 API)
 - LLM-based summarization or token budgets
 - Auth-gated docs
 - PDF or non-HTML sources
 - Web UI
-- Doc registry / sharing
 
 ## Common Pitfalls
 
