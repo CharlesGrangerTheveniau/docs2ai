@@ -36,6 +36,9 @@ docmunch update            # refresh all sources
 docmunch update --name stripe  # refresh one
 docmunch list              # show configured sources
 
+# Browse available docs on the registry
+docmunch registry
+
 # Download pre-crawled docs from registry
 docmunch pull stripe
 ```
@@ -120,9 +123,17 @@ docmunch serve              # serves .ai/docs/ (default)
 docmunch serve -d ./docs/   # custom directory
 ```
 
-## Pull Command
+## Registry
 
-Download pre-crawled documentation packages from the hosted registry:
+### Browse available sources
+
+```bash
+docmunch registry                          # list all sources
+docmunch registry --json                   # raw JSON output
+docmunch registry --registry-url <url>     # custom registry
+```
+
+### Download a source
 
 ```bash
 docmunch pull stripe                          # download to .ai/docs/stripe/

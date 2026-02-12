@@ -49,7 +49,8 @@ docmunch/
 │   │   ├── update.ts        # `docmunch update` — refresh all sources
 │   │   ├── list.ts          # `docmunch list` — show configured sources
 │   │   ├── serve.ts         # `docmunch serve` — start MCP server
-│   │   └── pull.ts          # `docmunch pull <name>` — download from registry
+│   │   ├── pull.ts          # `docmunch pull <name>` — download from registry
+│   │   └── registry.ts     # `docmunch registry` — list registry sources
 │   ├── pipeline/
 │   │   ├── resolver.ts      # Platform detection
 │   │   ├── fetcher.ts       # HTML fetching (static + browser)
@@ -133,6 +134,10 @@ docmunch update --name stripe
 # List configured sources
 docmunch list
 
+# Browse available docs on the registry
+docmunch registry
+docmunch registry --json
+
 # Download pre-crawled docs from registry
 docmunch pull stripe
 docmunch pull stripe --registry-url https://custom.registry.dev --token <token>
@@ -144,7 +149,22 @@ docmunch serve --registry               # stream from hosted registry (future)
 docmunch serve --registry --team myteam # scoped to team (future)
 ```
 
-## Pull Command
+## Registry Commands
+
+### `docmunch registry` — browse available sources
+
+Lists all documentation sources available on the hosted registry.
+
+```bash
+docmunch registry                              # list all sources
+docmunch registry --json                       # raw JSON output
+docmunch registry --registry-url <url>         # custom registry
+docmunch registry --token <token>              # authenticated access
+```
+
+Hits `GET {registryUrl}/api/sources`. Shows name, URL, platform, page count, token estimate, and description for each source.
+
+### `docmunch pull <name>` — download a source
 
 The `pull` command downloads a pre-crawled documentation package from the hosted registry API.
 
@@ -355,7 +375,7 @@ if (crawl && -o doesn't end with .md)→ directory at -o path
 - No live network calls in tests (mock fetch, use fixtures)
 - Test code block preservation specifically — this is the most important quality signal
 
-## Current State (v0.2)
+## Current State (v0.3)
 
 All core functionality is implemented and working:
 
@@ -372,10 +392,11 @@ All core functionality is implemented and working:
 11. Content hashing per page (`content_hash`, SHA-256)
 12. Search result previews (~200 char excerpts) in MCP search_docs
 13. `pull` command for downloading from hosted registry
-14. `--force` flag for forcing rewrites even when content is unchanged
-15. Smart change detection (skips writing unchanged files, ignoring timestamp differences)
-16. Graceful Ctrl+C during crawl with save/discard prompt
-17. `--registry` and `--team` flags on serve (plumbing for future remote loading)
+14. `registry` command for browsing available sources on the registry
+15. `--force` flag for forcing rewrites even when content is unchanged
+16. Smart change detection (skips writing unchanged files, ignoring timestamp differences)
+17. Graceful Ctrl+C during crawl with save/discard prompt
+18. `--registry` and `--team` flags on serve (plumbing for future remote loading)
 
 ### Upcoming / not yet implemented
 
