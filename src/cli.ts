@@ -5,6 +5,7 @@ import { addCommand } from "./commands/add";
 import { updateCommand } from "./commands/update";
 import { listCommand } from "./commands/list";
 import { serveCommand } from "./commands/serve";
+import { pullCommand } from "./commands/pull";
 
 process.on("uncaughtException", (err: any) => {
   if (err.code === "ERR_PLAYWRIGHT_NOT_INSTALLED") {
@@ -29,6 +30,7 @@ const subCommands: Record<string, any> = {
   update: updateCommand,
   list: listCommand,
   serve: serveCommand,
+  pull: pullCommand,
 };
 
 // Check if first non-flag arg is a subcommand
@@ -64,6 +66,7 @@ if (isSubCommand) {
       console.log("       docmunch update [--name name]");
       console.log("       docmunch list");
       console.log("       docmunch serve [-d dir]");
+      console.log("       docmunch pull <name>");
       console.log("\nRun `docmunch --help` for full usage.");
     },
   });
